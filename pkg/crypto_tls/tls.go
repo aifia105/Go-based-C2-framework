@@ -3,6 +3,8 @@ package crypto_tls
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
+	"os"
 )
 
 func TLSClient(certFile, serverName string) (*tls.Config, error) {
@@ -15,9 +17,9 @@ func TLSClient(certFile, serverName string) (*tls.Config, error) {
 		return nil, errors.New("failed to append certificate")
 	}
 	return &tls.Config{
-		RootCAs:      caPool,
-		MinVersion:   tls.VersionTLS13,
-		ServerName:   serverName,
+		RootCAs:    caPool,
+		MinVersion: tls.VersionTLS13,
+		ServerName: serverName,
 	}, nil
 }
 
@@ -28,6 +30,6 @@ func TLSServer(certFile, keyFile string) (*tls.Config, error) {
 	}
 	return &tls.Config{
 		Certificates: []tls.Certificate{cert},
-		MinVersion:   tls.VersionTLS12
+		MinVersion:   tls.VersionTLS13,
 	}, nil
 }

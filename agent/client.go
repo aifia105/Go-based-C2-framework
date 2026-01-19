@@ -8,8 +8,11 @@ import (
 )
 
 type Client struct {
-	Conn  net.Conn
-	Codec *protocol.Codec
+	Conn      net.Conn
+	Codec     *protocol.Codec
+	SessionID string
+	ID        string
+	Done      chan struct{}
 }
 
 func Run(addr string, caFile, serverName string) (*Client, error) {
@@ -20,16 +23,19 @@ func Run(addr string, caFile, serverName string) (*Client, error) {
 	codec := protocol.NewCodec(conn)
 
 	client := &Client{
-		Conn:  conn,
-		Codec: codec,
+		Conn:      conn,
+		Codec:     codec,
+		SessionID: "x",
+		ID:        "x",
+		Done:      make(chan struct{}),
 	}
 	fmt.Println("Client started")
 
 	message := protocol.Message{
-		Type:      protocol.MsgHello,
-		Payload:   "Hello from " + runtime.GOOS + " agent",
-		ID:        "1",
-		SessionID: "1",
+		Type:      protocol.MsgAuth,
+		Payload:   "agent_auth_flag:authenticate_me",
+		ID:        "x",
+		SessionID: "x",
 		Meta: map[string]string{
 			"version":  "1.0",
 			"platform": runtime.GOOS,
@@ -46,6 +52,7 @@ func Run(addr string, caFile, serverName string) (*Client, error) {
 }
 
 func (c *Client) readLoop() {
+	defer close(c.Done)
 	for {
 		msg, err := c.Codec.Read()
 		if err != nil {
@@ -63,6 +70,12 @@ func (c *Client) handle(msg protocol.Message) {
 	case protocol.MsgHello:
 		fmt.Println("[+] Server responded with hello")
 		fmt.Println("[+] Connection established")
+	case protocol.MsgAuth:
+		fmt.Println("[+] Server requested authentication")
+		c.SessionID = msg.SessionID
+		c.ID = msg.ID
+		fmt.Println("[+] Session ID set to:", c.SessionID)
+		fmt.Println("[+] Authentication successful")
 	case protocol.MsgPing:
 		fmt.Println("[+] Received ping")
 		response := protocol.Message{

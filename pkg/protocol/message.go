@@ -10,6 +10,7 @@ type Message struct {
 
 const (
 	MsgHello  = "hello"
+	MsgAuth   = "auth"
 	MsgExec   = "exec"
 	MsgResult = "result"
 	MsgPing   = "ping"

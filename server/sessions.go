@@ -17,6 +17,7 @@ type Session struct {
 	Codec      *protocol.Codec
 	Meta       map[string]string
 	LastActive time.Time
+	ResultChan chan protocol.Message
 }
 
 type SessionManager struct {
@@ -32,6 +33,7 @@ func NewSession(codec *protocol.Codec, conn net.Conn, agentID string, meta map[s
 		AgentID:    agentID,
 		Meta:       meta,
 		LastActive: time.Now(),
+		ResultChan: make(chan protocol.Message, 10),
 	}
 }
 
@@ -54,6 +56,9 @@ func (manager *SessionManager) Remove(sessionID string) {
 
 	if session, exists := manager.sessions[sessionID]; exists {
 		session.Conn.Close()
+		if session.ResultChan != nil {
+			close(session.ResultChan)
+		}
 		delete(manager.sessions, sessionID)
 	}
 }
@@ -96,6 +101,9 @@ func (manager *SessionManager) StartCleanup(interval time.Duration, timeout time
 				if now.Sub(session.LastActive) > timeout {
 					logger.Warn("Session timeout", zap.String("sessionID", id))
 					session.Conn.Close()
+					if session.ResultChan != nil {
+						close(session.ResultChan)
+					}
 					delete(manager.sessions, id)
 				}
 			}

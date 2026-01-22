@@ -329,7 +329,7 @@ reverse_shell/
 │       └── main.go        # Server entry point
 ├── pkg/
 │   ├── common/
-│   │   └── utils.go       # Shared utilities (ID generation)
+│   │   └── utils.go       # Shared utilities
 │   ├── crypto_tls/
 │   │   └── tls.go         # TLS configuration
 │   └── protocol/
@@ -375,42 +375,9 @@ reverse_shell/
 - **Network:** Binary protocol with 10MB message limit
 - **Latency:** Sub-second command execution on LAN
 
-## 🤝 Contributing
-
-This is an educational project. Contributions are welcome:
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
-
-## ⚖️ Legal Disclaimer
-
-**FOR EDUCATIONAL PURPOSES ONLY**
-
-This tool is designed for:
-- ✅ Security research
-- ✅ Penetration testing with authorization
-- ✅ Red team operations
-- ✅ Educational demonstrations
-
-**Unauthorized access to computer systems is illegal.** Users are responsible for compliance with all applicable laws. The authors assume no liability for misuse of this software.
-
 ## 📝 License
 
 MIT License - See LICENSE file for details
-
-## 🙏 Acknowledgments
-
-- Built with [Go](https://golang.org/)
-- Logging by [Zap](https://github.com/uber-go/zap)
-- Inspired by Metasploit's session management
-
-## 📧 Contact
-
-- **Author:** aifia105
-- **Project:** [github.com/yourusername/reverse_shell](https://github.com/yourusername/reverse_shell)
 
 ---
 
